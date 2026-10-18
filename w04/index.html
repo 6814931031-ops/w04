@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สถานที่ท่องเที่ยว - Tourist Attraction Showcase & Viewport Simulator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font: Kanit / Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Prompt', 'sans-serif'],
+                    },
+                    colors: {
+                        travel: {
+                            primary: '#0284c7', // Sky blue
+                            secondary: '#0d9488', // Teal
+                            accent: '#f97316', // Vibrant Orange
+                            dark: '#0f172a',
+                            light: '#f8fafc'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        /* Custom Scrollbar for Phone Frame */
+        .phone-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .phone-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        .phone-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        /* Responsive Frame Wrapper Transitions */
+        .viewport-container {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            margin: 0 auto;
+        }
+
+        /* Phone Frame Styling in Simulated Mode */
+        .mode-mobile-sim .viewport-container {
+            max-width: 395px !important;
+            border: 12px solid #334155;
+            border-top-width: 24px;
+            border-bottom-width: 28px;
+            border-radius: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            position: relative;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        /* Phone Camera Notch Effect */
+        .mode-mobile-sim .viewport-container::before {
+            content: '';
+            position: absolute;
+            top: -16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 110px;
+            height: 14px;
+            background-color: #1e293b;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+            z-index: 100;
+        }
+
+        /* Tablet Frame Simulation */
+        .mode-tablet-sim .viewport-container {
+            max-width: 600px !important;
+            border: 10px solid #334155;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6);
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        /* Desktop Mode Frame */
+        .mode-desktop-sim .viewport-container {
+            max-width: 100% !important;
+            border: none;
+            border-radius: 0px;
+            box-shadow: none;
+            background: #ffffff;
+        }
+
+        /* Pure CSS Media Queries for the Content Page (Applied dynamically or inside target viewports) */
+        @media (max-width: 600px) {
+            .desktop-only { display: none !important; }
+            .mobile-only { display: block !important; }
+            .content-grid { grid-template-columns: 1fr !important; }
+            .recommended-grid { grid-template-columns: 1fr !important; }
+            .hero-title { font-size: 1.5rem !important; line-height: 2rem !important; }
+        }
+
+        /* Smooth CSS transitions */
+        .transition-all-custom {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- TOP CONTROL PANEL / TOOLBAR (Control Simulator & Mode Switcher) -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 px-4 py-3 shadow-xl">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            
+            <!-- App Logo & Title -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-teal-400 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-sky-500/30">
+                    <i class="fa-solid font-bold fa-compass"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-white leading-tight">TravelView Studio</h1>
+                    <p class="text-xs text-slate-400">ระบบแสดงผลสถานที่ท่องเที่ยว & Simulator</p>
+                </div>
+            </div>
+
+            <!-- Viewport Switcher Controls -->
+            <div class="flex items-center bg-slate-800/90 p-1.5 rounded-2xl border border-slate-700/80">
+                <button id="btn-desktop" onclick="setViewportMode('desktop')" class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-all text-white bg-sky-600 shadow-md">
+                    <i class="fa-solid fa-desktop"></i>
+                    <span class="hidden sm:inline">Desktop View</span>
+                    <span class="text-[10px] bg-sky-900/50 px-1.5 py-0.5 rounded border border-sky-400/30">&gt;600px</span>
+                </button>
+                <button id="btn-tablet" onclick="setViewportMode('tablet')" class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-all text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-tablet-screen-button"></i>
+                    <span class="hidden sm:inline">Mobile Max</span>
+                    <span class="text-[10px] bg-slate-700 px-1.5 py-0.5 rounded">600px</span>
+                </button>
+                <button id="btn-mobile" onclick="setViewportMode('mobile')" class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-all text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-mobile-screen-button"></i>
+                    <span class="hidden sm:inline">Mobile Phone</span>
+                    <span class="text-[10px] bg-slate-700 px-1.5 py-0.5 rounded">375px</span>
+                </button>
+            </div>
+
+            <!-- Comparison Screen Toggle Button -->
+            <div class="flex items-center gap-2">
+                <button onclick="toggleComparisonModal()" class="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-semibold text-xs sm:text-sm px-4 py-2 rounded-xl shadow-lg shadow-orange-500/20 transition-all transform hover:scale-105 active:scale-95">
+                    <i class="fa-solid fa-columns text-slate-900"></i>
+                    <span>เปรียบเทียบ 2 หน้าจอ (Side-by-Side)</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN VIEWPORT CONTAINER -->
+    <main id="main-viewport-wrapper" class="flex-1 py-4 sm:py-6 px-2 sm:px-4 mode-desktop-sim overflow-x-auto bg-slate-950">
+        
+        <!-- Simulated Device Frame / Container -->
+        <div id="viewport-container" class="viewport-container bg-white text-slate-800 transition-all duration-300">
+            
+            <!-- ========================================================================= -->
+            <!-- TOURIST ATTRACTION PAGE CONTENT (RESPONSIVE FOR BOTH MOBILE & DESKTOP) -->
+            <!-- ========================================================================= -->
+            <div class="main-page-content min-h-[85vh] bg-slate-50 text-slate-800 flex flex-col font-sans">
+                
+                <!-- 1. NAVIGATION BAR -->
+                <nav class="bg-white/95 backdrop-blur-md sticky top-0 z-40 border-b border-slate-100 shadow-sm">
+                    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+                        <!-- Brand Logo -->
+                        <div class="flex items-center gap-2">
+                            <span class="w-8 h-8 bg-sky-600 text-white rounded-lg flex items-center justify-center font-bold text-lg shadow-md">
+                                <i class="fa-solid fa-mountain-sun"></i>
+                            </span>
+                            <span class="font-bold text-lg bg-gradient-to-r from-sky-600 to-teal-600 bg-clip-text text-transparent">
+                                WonderSiam
+                            </span>
+                        </div>
+
+                        <!-- Desktop Navigation Links (Hidden on screen <= 600px) -->
+                        <div class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
+                            <a href="#" class="text-sky-600 font-semibold">หน้าแรก</a>
+                            <a href="#" class="hover:text-sky-600 transition-colors">ค้นหาที่เที่ยว</a>
+                            <a href="#" class="hover:text-sky-600 transition-colors">แพ็กเกจทัวร์</a>
+                            <a href="#" class="hover:text-sky-600 transition-colors">บทความรีวิว</a>
+                            <a href="#" class="hover:text-sky-600 transition-colors">เกี่ยวกับเรา</a>
+                        </div>
+
+                        <!-- Desktop Action Button -->
+                        <div class="hidden md:flex items-center gap-3">
+                            <button class="px-4 py-2 text-sm font-medium text-sky-600 hover:bg-sky-50 rounded-xl transition-all">เข้าสู่ระบบ</button>
+                            <button class="px-4 py-2 text-sm font-medium bg-sky-600 hover:bg-sky-700 text-white rounded-xl shadow-md shadow-sky-600/20 transition-all">วางแผนเดินทาง</button>
+                        </div>
+
+                        <!-- Mobile Hamburger Button (Visible on mobile/narrow frames) -->
+                        <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="md:hidden text-slate-700 text-xl p-2 focus:outline-none rounded-lg hover:bg-slate-100">
+                            <i class="fa-solid fa-bars" id="hamburger-icon"></i>
+                        </button>
+                    </div>
+
+                    <!-- Collapsible Mobile Menu -->
+                    <div id="mobile-dropdown" class="hidden md:hidden border-t border-slate-100 bg-white px-4 py-3 space-y-2 shadow-lg">
+                        <a href="#" class="block px-3 py-2 rounded-lg bg-sky-50 text-sky-600 font-medium text-sm">หน้าแรก</a>
+                        <a href="#" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 text-sm">ค้นหาที่เที่ยว</a>
+                        <a href="#" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 text-sm">แพ็กเกจทัวร์</a>
+                        <a href="#" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 text-sm">บทความรีวิว</a>
+                        <div class="pt-2 border-t border-slate-100 flex gap-2">
+                            <button class="flex-1 py-2 text-center text-sm font-medium text-slate-700 bg-slate-100 rounded-xl">เข้าสู่ระบบ</button>
+                            <button class="flex-1 py-2 text-center text-sm font-medium text-white bg-sky-600 rounded-xl shadow-sm">ลงทะเบียน</button>
+                        </div>
+                    </div>
+                </nav>
+
+                <!-- BREADCRUMB -->
+                <div class="max-w-7xl mx-auto px-4 py-3 w-full text-xs text-slate-500 flex items-center gap-2 overflow-x-auto">
+                    <a href="#" class="hover:text-sky-600"><i class="fa-solid fa-house"></i> หน้าแรก</a>
+                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    <a href="#" class="hover:text-sky-600">กระบี่</a>
+                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    <span class="text-slate-800 font-medium truncate">หมู่เกาะพีพี (Phi Phi Islands)</span>
+                </div>
+
+                <!-- 2. HERO COVER BANNER -->
+                <section class="relative max-w-7xl mx-auto w-full px-0 sm:px-4 mb-6">
+                    <div class="relative h-64 sm:h-96 md:h-[420px] w-full sm:rounded-3xl overflow-hidden shadow-xl bg-slate-900">
+                        <img src="https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?auto=format&fit=crop&w=1400&q=80" 
+                             alt="หมู่เกาะพีพี" 
+                             class="w-full h-full object-cover opacity-90 hover:scale-105 transition-transform duration-700">
+                        
+                        <!-- Gradient Overlay -->
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/30 to-transparent"></div>
+
+                        <!-- Hero Badges & Quick Stats -->
+                        <div class="absolute top-4 left-4 right-4 flex justify-between items-center">
+                            <span class="bg-amber-500/90 backdrop-blur-md text-slate-950 font-bold text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
+                                <i class="fa-solid fa-fire text-red-600"></i> ยอดนิยมอันดับ 1
+                            </span>
+                            <div class="flex gap-2">
+                                <button class="w-9 h-9 rounded-full bg-white/80 backdrop-blur-md text-slate-800 flex items-center justify-center hover:bg-white transition-all shadow-md">
+                                    <i class="fa-regular fa-heart"></i>
+                                </button>
+                                <button class="w-9 h-9 rounded-full bg-white/80 backdrop-blur-md text-slate-800 flex items-center justify-center hover:bg-white transition-all shadow-md">
+                                    <i class="fa-solid fa-share-nodes"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Hero Text Content -->
+                        <div class="absolute bottom-4 left-4 right-4 sm:bottom-8 sm:left-8 sm:right-8 text-white">
+                            <div class="flex items-center gap-2 text-xs sm:text-sm text-sky-300 font-medium mb-1">
+                                <i class="fa-solid fa-location-dot"></i> อ่าวมาหยา, อำเภอเมืองกระบี่, จังหวัดกระบี่
+                            </div>
+                            <h2 class="hero-title text-2xl sm:text-4xl font-bold tracking-tight mb-2 text-white drop-shadow-md">
+                                หมู่เกาะพีพี (Phi Phi Islands)
+                            </h2>
+                            <div class="flex flex-wrap items-center gap-3 text-xs sm:text-sm">
+                                <div class="flex items-center gap-1 text-amber-400 font-semibold bg-slate-900/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10">
+                                    <i class="fa-solid fa-star"></i>
+                                    <span>4.9</span>
+                                    <span class="text-slate-300 font-normal">(2,840 รีวิว)</span>
+                                </div>
+                                <span class="bg-teal-500/80 backdrop-blur-md text-white px-2.5 py-1 rounded-lg font-medium">
+                                    <i class="fa-solid fa-water"></i> ทะเล & ชายหาด
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. MAIN CONTENT LAYOUT (FLEX / GRID LAYOUT) -->
+                <div class="max-w-7xl mx-auto px-4 w-full flex-1 mb-10">
+                    <!-- Responsive Grid: 1 Column on Mobile / 3 Columns on Desktop (2 Content + 1 Sidebar) -->
+                    <div class="content-grid grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        
+                        <!-- LEFT / MAIN COLUMN (Detail & Gallery) -->
+                        <div class="lg:col-span-2 space-y-6">
+                            
+                            <!-- Description Card -->
+                            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+                                <h3 class="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                                    <i class="fa-solid fa-circle-info text-sky-600"></i> รายละเอียดสถานที่
+                                </h3>
+                                <p class="text-slate-600 text-sm sm:text-base leading-relaxed mb-4">
+                                    <strong>หมู่เกาะพีพี</strong> เป็นอัญมณีแห่งทะเลอันดามัน โดดเด่นด้วยเขาหินปูนสูงตระหง่าน น้ำทะเลสีเขียวมรกตใสบริสุทธิ์ และหาดทรายขาวละเอียดราวกับแป้ง ประกอบด้วย 2 เกาะหลัก คือ <strong>พีพีดอน</strong> ซึ่งเป็นศูนย์กลางท่องเที่ยว มีที่พักและร้านอาหาร และ <strong>พีพีเล</strong> ที่เป็นที่ตั้งของ "อ่าวมาหยา" และ "ปิเละเลกูน" สวรรค์ของนักดำน้ำจากทั่วโลก
+                                </p>
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100 text-xs sm:text-sm">
+                                    <div class="flex items-center gap-2 text-slate-700">
+                                        <i class="fa-solid fa-sun text-amber-500"></i> ช่วงน่าเที่ยว: พ.ย. - เม.ย.
+                                    </div>
+                                    <div class="flex items-center gap-2 text-slate-700">
+                                        <i class="fa-solid fa-person-swimming text-sky-500"></i> กิจกรรม: ดำน้ำ, พายคายัค
+                                    </div>
+                                    <div class="flex items-center gap-2 text-slate-700">
+                                        <i class="fa-solid fa-ship text-indigo-500"></i> การเดินทาง: เรือสปีดโบ๊ท
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Photo Gallery -->
+                            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+                                <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <i class="fa-solid fa-images text-sky-600"></i> แกลเลอรีภาพถ่าย
+                                </h3>
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    <div class="h-28 sm:h-36 rounded-xl overflow-hidden group relative cursor-pointer">
+                                        <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80" alt="Gallery 1" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                                    </div>
+                                    <div class="h-28 sm:h-36 rounded-xl overflow-hidden group relative cursor-pointer">
+                                        <img src="https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=600&q=80" alt="Gallery 2" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                                    </div>
+                                    <div class="h-28 sm:h-36 rounded-xl overflow-hidden group relative cursor-pointer col-span-2 sm:col-span-1">
+                                        <img src="https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?auto=format&fit=crop&w=600&q=80" alt="Gallery 3" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                                        <div class="absolute inset-0 bg-slate-900/40 flex items-center justify-center text-white font-medium text-xs sm:text-sm">
+                                            + 12 ภาพเพิ่มเติม
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Highlights Facilities Card -->
+                            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+                                <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <i class="fa-solid fa-list-check text-sky-600"></i> สิ่งอำนวยความสะดวก & จุดเด่น
+                                </h3>
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                        <i class="fa-solid fa-utensils text-2xl text-orange-500 mb-1"></i>
+                                        <p class="text-xs font-medium text-slate-700">ร้านอาหารชายหาด</p>
+                                    </div>
+                                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                        <i class="fa-solid fa-life-ring text-2xl text-sky-500 mb-1"></i>
+                                        <p class="text-xs font-medium text-slate-700">อุปกรณ์ดำน้ำให้เช่า</p>
+                                    </div>
+                                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                        <i class="fa-solid fa-vest text-2xl text-teal-500 mb-1"></i>
+                                        <p class="text-xs font-medium text-slate-700">เสื้อชูชีพความปลอดภัย</p>
+                                    </div>
+                                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                        <i class="fa-solid fa-toilet text-2xl text-indigo-500 mb-1"></i>
+                                        <p class="text-xs font-medium text-slate-700">ห้องน้ำ & จุดอาบน้ำ</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- RIGHT COLUMN / SIDEBAR (Info, Ticket, Map & CTA Buttons) -->
+                        <div class="space-y-6">
+                            
+                            <!-- Key Info & Action Box -->
+                            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-md sticky top-20">
+                                
+                                <div class="flex items-baseline justify-between mb-4 border-b border-slate-100 pb-4">
+                                    <div>
+                                        <span class="text-xs text-slate-400 block">ค่าเข้าชมเริ่มต้น</span>
+                                        <span class="text-2xl font-bold text-sky-600">฿40</span>
+                                        <span class="text-xs text-slate-500"> / คน (คนไทย)</span>
+                                    </div>
+                                    <span class="text-xs bg-emerald-100 text-emerald-700 font-semibold px-2.5 py-1 rounded-full">
+                                        เปิดให้บริการวันนี้
+                                    </span>
+                                </div>
+
+                                <!-- Information List -->
+                                <div class="space-y-3.5 text-xs sm:text-sm mb-6">
+                                    <div class="flex items-start gap-3 text-slate-600">
+                                        <i class="fa-regular fa-clock text-sky-600 text-base mt-0.5"></i>
+                                        <div>
+                                            <p class="font-semibold text-slate-800">เวลาทำการ</p>
+                                            <p>เปิดทุกวัน: 07:00 - 17:30 น.</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start gap-3 text-slate-600">
+                                        <i class="fa-solid fa-ticket text-sky-600 text-base mt-0.5"></i>
+                                        <div>
+                                            <p class="font-semibold text-slate-800">ค่าอุทยานฯ</p>
+                                            <p>ผู้ใหญ่ 40 บ. / เด็ก 20 บ. (ต่างชาติ 400 บ.)</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start gap-3 text-slate-600">
+                                        <i class="fa-solid fa-phone text-sky-600 text-base mt-0.5"></i>
+                                        <div>
+                                            <p class="font-semibold text-slate-800">เบอร์โทรศัพท์ติดต่อ</p>
+                                            <p>075-661-115 (อุทยานแห่งชาติ)</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Map Preview Container -->
+                                <div class="mb-5 rounded-xl overflow-hidden border border-slate-200 relative bg-slate-100 h-36 flex items-center justify-center">
+                                    <img src="https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=500&q=80" alt="Map Preview" class="w-full h-full object-cover opacity-60">
+                                    <div class="absolute inset-0 bg-slate-900/30 flex flex-col items-center justify-center p-2 text-center">
+                                        <i class="fa-solid fa-location-dot text-2xl text-red-500 mb-1 animate-bounce"></i>
+                                        <span class="text-xs font-semibold text-white bg-slate-900/80 px-3 py-1 rounded-full shadow">
+                                            พิกัด GPS: 7.6784° N, 98.7681° E
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons (Optimized for Touch on Mobile) -->
+                                <div class="space-y-2.5">
+                                    <button class="w-full py-3 sm:py-3.5 bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-700 hover:to-teal-700 text-white font-semibold rounded-xl shadow-lg shadow-sky-600/25 flex items-center justify-center gap-2 transition-all active:scale-98">
+                                        <i class="fa-solid fa-calendar-check"></i>
+                                        <span>จองทัวร์ / ตั๋วเรือออนไลน์</span>
+                                    </button>
+                                    <button class="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl flex items-center justify-center gap-2 transition-all">
+                                        <i class="fa-solid fa-diamond-turn-right text-sky-600"></i>
+                                        <span>นำทางด้วย Google Maps</span>
+                                    </button>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- 4. RECOMMENDED SPOTS (GRID 1 Col Mobile / 3-4 Cols Desktop) -->
+                    <div class="mt-12 pt-8 border-t border-slate-200">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 class="text-xl font-bold text-slate-800">สถานที่ท่องเที่ยวใกล้เคียง</h3>
+                                <p class="text-xs sm:text-sm text-slate-500">จัดเรียงแบบ Responsive Grid รองรับทุกขนาดหน้าจอ</p>
+                            </div>
+                            <a href="#" class="text-xs sm:text-sm font-semibold text-sky-600 hover:underline">ดูทั้งหมด <i class="fa-solid fa-arrow-right"></i></a>
+                        </div>
+
+                        <!-- Responsive Grid Component -->
+                        <div class="recommended-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                            
+                            <!-- Card 1 -->
+                            <div class="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-md transition-all group">
+                                <div class="h-40 overflow-hidden relative">
+                                    <img src="https://images.unsplash.com/photo-1506929562872-bb421503ef21?auto=format&fit=crop&w=500&q=80" alt="อ่าวมาหยา" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                    <span class="absolute top-2 right-2 bg-slate-900/70 text-white text-[10px] font-semibold px-2 py-0.5 rounded-md">ห่างไป 2.5 กม.</span>
+                                </div>
+                                <div class="p-4">
+                                    <h4 class="font-bold text-slate-800 text-sm mb-1 group-hover:text-sky-600 transition-colors">อ่าวมาหยา (Maya Bay)</h4>
+                                    <p class="text-xs text-slate-500 line-clamp-2 mb-3">ชายหาดสวยระดับโลกฉากถ่ายทำภาพยนตร์ดัง น้ำใสเห็นพื้นทราย</p>
+                                    <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-100">
+                                        <span class="text-amber-500 font-semibold"><i class="fa-solid fa-star"></i> 4.9</span>
+                                        <span class="text-slate-400">ฟรีค่าเข้าเพิ่ม</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card 2 -->
+                            <div class="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-md transition-all group">
+                                <div class="h-40 overflow-hidden relative">
+                                    <img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=500&q=80" alt="ปิเละเลกูน" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                    <span class="absolute top-2 right-2 bg-slate-900/70 text-white text-[10px] font-semibold px-2 py-0.5 rounded-md">ห่างไป 4.1 กม.</span>
+                                </div>
+                                <div class="p-4">
+                                    <h4 class="font-bold text-slate-800 text-sm mb-1 group-hover:text-sky-600 transition-colors">ปิเละเลกูน (Pileh Lagoon)</h4>
+                                    <p class="text-xs text-slate-500 line-clamp-2 mb-3">สระว่ายน้ำธรรมชาติกลางทะเล ล้อมรอบด้วยผาหินปูนสูงใหญ่</p>
+                                    <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-100">
+                                        <span class="text-amber-500 font-semibold"><i class="fa-solid fa-star"></i> 4.8</span>
+                                        <span class="text-slate-400">เหมาะเล่นน้ำ</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card 3 -->
+                            <div class="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-md transition-all group">
+                                <div class="h-40 overflow-hidden relative">
+                                    <img src="https://images.unsplash.com/photo-1512100356356-de1b84283e18?auto=format&fit=crop&w=500&q=80" alt="เกาะไม้ไผ่" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                    <span class="absolute top-2 right-2 bg-slate-900/70 text-white text-[10px] font-semibold px-2 py-0.5 rounded-md">ห่างไป 9.0 กม.</span>
+                                </div>
+                                <div class="p-4">
+                                    <h4 class="font-bold text-slate-800 text-sm mb-1 group-hover:text-sky-600 transition-colors">เกาะไม้ไผ่ (Bamboo Island)</h4>
+                                    <p class="text-xs text-slate-500 line-clamp-2 mb-3">เกาะเงียบสงบ หาดทรายกว้าง เงียบสงบ เหมาะกับการปิกนิกพักผ่อน</p>
+                                    <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-100">
+                                        <span class="text-amber-500 font-semibold"><i class="fa-solid fa-star"></i> 4.7</span>
+                                        <span class="text-slate-400">มีจุดดำน้ำปะการัง</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card 4 -->
+                            <div class="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-md transition-all group">
+                                <div class="h-40 overflow-hidden relative">
+                                    <img src="https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&w=500&q=80" alt="จุดชมวิวเกาะพีพี" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                    <span class="absolute top-2 right-2 bg-slate-900/70 text-white text-[10px] font-semibold px-2 py-0.5 rounded-md">ห่างไป 1.8 กม.</span>
+                                </div>
+                                <div class="p-4">
+                                    <h4 class="font-bold text-slate-800 text-sm mb-1 group-hover:text-sky-600 transition-colors">จุดชมวิวพีพีดอน (Viewpoint)</h4>
+                                    <p class="text-xs text-slate-500 line-clamp-2 mb-3">จุดชมวิวเวิ้งอ่าวคู่คอดกิ่วอันเป็นเอกลักษณ์ มองเห็นพระอาทิตย์ตกดิน</p>
+                                    <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-100">
+                                        <span class="text-amber-500 font-semibold"><i class="fa-solid fa-star"></i> 4.9</span>
+                                        <span class="text-slate-400">จุดถ่ายรูปฮิต</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- FOOTER -->
+                <footer class="bg-slate-900 text-slate-400 py-8 px-4 border-t border-slate-800 mt-auto">
+                    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-mountain-sun text-sky-500 text-base"></i>
+                            <span class="text-slate-200 font-medium">WonderSiam Travel Guide</span>
+                            <span>&copy; 2026 สงวนลิขสิทธิ์ทั้งหมด</span>
+                        </div>
+                        <div class="flex gap-4">
+                            <a href="#" class="hover:text-white">นโยบายความเป็นส่วนตัว</a>
+                            <a href="#" class="hover:text-white">เงื่อนไขการใช้งาน</a>
+                            <a href="#" class="hover:text-white">ติดต่อโฆษณา</a>
+                        </div>
+                    </div>
+                </footer>
+
+            </div>
+            <!-- END TOURIST ATTRACTION PAGE CONTENT -->
+
+        </div>
+    </main>
+
+    <!-- ========================================================================= -->
+    <!-- SIDE-BY-SIDE SCREEN COMPARISON MODAL (Interactive Screenshot Preview) -->
+    <!-- ========================================================================= -->
+    <div id="comparison-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex-col transition-all duration-300">
+        
+        <!-- Modal Top Header Bar -->
+        <div class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                <h2 class="text-white font-bold text-sm sm:text-base ml-2 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-amber-400"></i>
+                    การเปรียบเทียบการจัดวางหน้าจอ (Mobile vs Desktop Layout Comparison)
+                </h2>
+            </div>
+            <button onclick="toggleComparisonModal()" class="text-slate-400 hover:text-white text-xl p-1 focus:outline-none">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Comparison Screen Viewports (Side-by-Side Container) -->
+        <div class="flex-1 p-4 sm:p-6 overflow-auto flex flex-col lg:flex-row gap-6 justify-center items-start">
+            
+            <!-- LEFT: MOBILE VIEW SIMULATION (Width <= 600px) -->
+            <div class="w-full lg:w-[420px] flex-shrink-0 flex flex-col items-center">
+                <div class="mb-2 text-center">
+                    <span class="bg-sky-500/20 text-sky-400 text-xs font-semibold px-3 py-1 rounded-full border border-sky-500/30">
+                        <i class="fa-solid fa-mobile-screen"></i> 1. Mobile View (&le; 600px)
+                    </span>
+                    <p class="text-[11px] text-slate-400 mt-1">1 Column Grid / Hamburger Menu / Vertical Cards</p>
+                </div>
+                
+                <!-- Mock Mobile Screenshot Device Frame -->
+                <div class="w-full max-w-[375px] h-[650px] border-[10px] border-slate-700 rounded-[36px] overflow-hidden bg-slate-900 shadow-2xl relative phone-scrollbar overflow-y-auto">
+                    <!-- Scaled Mini Page Preview -->
+                    <div class="scale-90 transform-gpu origin-top">
+                        <!-- Mini Hero Header -->
+                        <div class="relative h-44 bg-slate-800">
+                            <img src="https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?auto=format&fit=crop&w=600&q=80" class="w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent"></div>
+                            <div class="absolute bottom-2 left-3 right-3 text-white">
+                                <span class="text-[9px] bg-amber-500 text-slate-950 px-1.5 py-0.5 rounded font-bold">อันดับ 1</span>
+                                <h3 class="text-sm font-bold text-white leading-tight">หมู่เกาะพีพี</h3>
+                                <p class="text-[10px] text-sky-300"><i class="fa-solid fa-location-dot"></i> จ.กระบี่</p>
+                            </div>
+                        </div>
+                        <!-- Mini Content Column -->
+                        <div class="p-3 space-y-3 bg-slate-100 text-slate-800 text-xs">
+                            <div class="bg-white p-3 rounded-xl shadow-sm">
+                                <h4 class="font-bold text-xs text-sky-700 mb-1">รายละเอียดสถานที่</h4>
+                                <p class="text-[11px] text-slate-600 leading-snug">หมู่เกาะพีพี อัญมณีแห่งทะเลอันดามัน โดดเด่นด้วยเขาหินปูนสูงตระหง่าน น้ำทะเลสีมรกต...</p>
+                            </div>
+                            <div class="bg-white p-3 rounded-xl shadow-sm">
+                                <h4 class="font-bold text-xs text-sky-700 mb-1">ข้อมูลสำคัญ</h4>
+                                <p class="text-[11px] text-slate-600">ค่าเข้าชม: ฿40 | เวลา: 07:00-17:30</p>
+                                <button class="w-full mt-2 py-2 bg-sky-600 text-white text-xs rounded-lg font-medium">จองตั๋วออนไลน์</button>
+                            </div>
+                            <!-- Mini Vertical Recommended Spots -->
+                            <div class="space-y-2">
+                                <h4 class="font-bold text-xs text-slate-700">ใกล้เคียง (1 Column)</h4>
+                                <div class="bg-white p-2 rounded-xl flex gap-2 items-center">
+                                    <img src="https://images.unsplash.com/photo-1506929562872-bb421503ef21?auto=format&fit=crop&w=150&q=80" class="w-12 h-12 rounded-lg object-cover">
+                                    <div>
+                                        <p class="font-bold text-[11px]">อ่าวมาหยา</p>
+                                        <p class="text-[9px] text-slate-400">ห่างไป 2.5 กม.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: DESKTOP VIEW SIMULATION (Width > 600px) -->
+            <div class="w-full lg:flex-1 flex flex-col items-center">
+                <div class="mb-2 text-center">
+                    <span class="bg-teal-500/20 text-teal-400 text-xs font-semibold px-3 py-1 rounded-full border border-teal-500/30">
+                        <i class="fa-solid fa-desktop"></i> 2. Desktop View (&gt; 600px)
+                    </span>
+                    <p class="text-[11px] text-slate-400 mt-1">Multi-column Grid Layout / Navigation Bar / Sidebar Sticky Box / 4-Col Grid</p>
+                </div>
+                
+                <!-- Mock Desktop Screenshot Device Frame -->
+                <div class="w-full h-[650px] border-[10px] border-slate-700 rounded-2xl overflow-hidden bg-slate-900 shadow-2xl relative overflow-y-auto">
+                    <!-- Scaled Mini Desktop Page Preview -->
+                    <div class="p-4 bg-slate-100 text-slate-800 text-xs min-h-full">
+                        <!-- Desktop Header -->
+                        <div class="bg-white p-3 rounded-xl flex justify-between items-center mb-3 shadow-sm">
+                            <span class="font-bold text-sky-600 flex items-center gap-1"><i class="fa-solid fa-mountain-sun"></i> WonderSiam</span>
+                            <div class="flex gap-4 text-[11px] text-slate-600 font-medium">
+                                <span class="text-sky-600">หน้าแรก</span>
+                                <span>ค้นหาที่เที่ยว</span>
+                                <span>แพ็กเกจทัวร์</span>
+                            </div>
+                        </div>
+                        <!-- Desktop Hero -->
+                        <div class="relative h-48 rounded-xl overflow-hidden mb-4 bg-slate-800">
+                            <img src="https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?auto=format&fit=crop&w=1000&q=80" class="w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent"></div>
+                            <div class="absolute bottom-3 left-4 text-white">
+                                <h3 class="text-xl font-bold">หมู่เกาะพีพี (Phi Phi Islands)</h3>
+                                <p class="text-xs text-sky-300"><i class="fa-solid fa-location-dot"></i> อำเภอเมืองกระบี่, จังหวัดกระบี่</p>
+                            </div>
+                        </div>
+                        <!-- Multi Column Layout Grid -->
+                        <div class="grid grid-cols-3 gap-4">
+                            <!-- Left 2 Cols -->
+                            <div class="col-span-2 space-y-3">
+                                <div class="bg-white p-3 rounded-xl shadow-sm">
+                                    <h4 class="font-bold text-sky-700 mb-1">รายละเอียดสถานที่</h4>
+                                    <p class="text-[11px] text-slate-600">หมู่เกาะพีพี เป็นอัญมณีแห่งทะเลอันดามัน โดดเด่นด้วยเขาหินปูนสูงตระหง่าน น้ำทะเลสีเขียวมรกตใสบริสุทธิ์...</p>
+                                </div>
+                                <div class="bg-white p-3 rounded-xl shadow-sm">
+                                    <h4 class="font-bold text-sky-700 mb-2">แกลเลอรีภาพถ่าย</h4>
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <div class="h-16 rounded-lg bg-slate-200 overflow-hidden"><img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=200&q=80" class="w-full h-full object-cover"></div>
+                                        <div class="h-16 rounded-lg bg-slate-200 overflow-hidden"><img src="https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=200&q=80" class="w-full h-full object-cover"></div>
+                                        <div class="h-16 rounded-lg bg-slate-200 overflow-hidden"><img src="https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?auto=format&fit=crop&w=200&q=80" class="w-full h-full object-cover"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Right 1 Col (Sidebar) -->
+                            <div class="col-span-1">
+                                <div class="bg-white p-3 rounded-xl shadow-sm border border-sky-100">
+                                    <p class="text-[10px] text-slate-400">ค่าเข้าชม</p>
+                                    <p class="text-lg font-bold text-sky-600">฿40 <span class="text-[10px] text-slate-500">/ คน</span></p>
+                                    <div class="text-[10px] text-slate-600 my-2 space-y-1">
+                                        <p><i class="fa-regular fa-clock text-sky-600"></i> 07:00 - 17:30</p>
+                                        <p><i class="fa-solid fa-phone text-sky-600"></i> 075-661-115</p>
+                                    </div>
+                                    <button class="w-full py-2 bg-sky-600 text-white rounded-lg text-xs font-semibold shadow">จองตั๋วออนไลน์</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT FOR INTERACTIVE SIMULATOR & CONTROLS -->
+    <script>
+        // Set Viewport Mode Switcher
+        function setViewportMode(mode) {
+            const wrapper = document.getElementById('main-viewport-wrapper');
+            const btnDesktop = document.getElementById('btn-desktop');
+            const btnTablet = document.getElementById('btn-tablet');
+            const btnMobile = document.getElementById('btn-mobile');
+
+            // Reset Active Button Styling
+            const activeClasses = ['bg-sky-600', 'text-white', 'shadow-md'];
+            const inactiveClasses = ['text-slate-400', 'hover:text-white', 'bg-transparent'];
+
+            [btnDesktop, btnTablet, btnMobile].forEach(btn => {
+                btn.classList.remove(...activeClasses);
+                btn.classList.add(...inactiveClasses);
+            });
+
+            // Set Mode Styles
+            wrapper.classList.remove('mode-desktop-sim', 'mode-tablet-sim', 'mode-mobile-sim');
+
+            if (mode === 'desktop') {
+                wrapper.classList.add('mode-desktop-sim');
+                btnDesktop.classList.add(...activeClasses);
+                btnDesktop.classList.remove(...inactiveClasses);
+            } else if (mode === 'tablet') {
+                wrapper.classList.add('mode-tablet-sim');
+                btnTablet.classList.add(...activeClasses);
+                btnTablet.classList.remove(...inactiveClasses);
+            } else if (mode === 'mobile') {
+                wrapper.classList.add('mode-mobile-sim');
+                btnMobile.classList.add(...activeClasses);
+                btnMobile.classList.remove(...inactiveClasses);
+            }
+        }
+
+        // Toggle Mobile Dropdown Navigation Menu
+        function toggleMobileMenu() {
+            const dropdown = document.getElementById('mobile-dropdown');
+            const icon = document.getElementById('hamburger-icon');
+            
+            if (dropdown.classList.contains('hidden')) {
+                dropdown.classList.remove('hidden');
+                icon.classList.remove('fa-bars');
+                icon.classList.add('fa-xmark');
+            } else {
+                dropdown.classList.add('hidden');
+                icon.classList.remove('fa-xmark');
+                icon.classList.add('fa-bars');
+            }
+        }
+
+        // Toggle Side-by-Side Screen Comparison Modal
+        function toggleComparisonModal() {
+            const modal = document.getElementById('comparison-modal');
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            } else {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+    </script>
+</body>
+</html>
